@@ -15,6 +15,19 @@ import torch.utils.data
 from data.base_dataset import BaseDataset
 
 
+def create_dataloader(opt):
+    """Create a dataset given the option.
+    This function wraps the class CustomDatasetDataLoader.
+        This is the main interface between this package and 'train.py'/'test.py'
+    Example:
+        >>> from data import create_dataloader
+        >>> dataset = create_dataloader(opt)
+    """
+    dataloader = CustomDatasetDataLoader(opt)
+    dataloader = dataloader.load_data()
+    return dataloader
+
+
 def find_dataset_using_name(dataset_name):
     """Import the module "data/[dataset_name]_dataset.py".
 
