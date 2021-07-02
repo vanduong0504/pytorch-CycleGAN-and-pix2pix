@@ -3,7 +3,7 @@ from torch import nn
 
 from metric.fid_score import _compute_statistics_of_ims, calculate_frechet_distance
 from metric.inception import InceptionV3
-from utils import util
+from util import util
 
 def get_fid(fakes, model, npz, device, batch_size=1, tqdm_position=None):
     m1, s1 = npz['mu'], npz['sigma']
