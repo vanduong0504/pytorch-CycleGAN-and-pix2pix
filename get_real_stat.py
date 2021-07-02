@@ -9,7 +9,7 @@ import data
 from data import create_dataloader
 from metric.fid_score import _compute_statistics_of_ims
 from metric.inception import InceptionV3
-from utils import util
+from util import util
 
 import os
 
