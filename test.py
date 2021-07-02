@@ -74,11 +74,10 @@ if __name__ == '__main__':
     device = copy.deepcopy(model.device)
     del model
     torch.cuda.empty_cache()
-
     inception_model = create_metric_models(opt, device)
     if inception_model is not None:
       npz = np.load(opt.real_stat_path)
-      fid = get_fid(fakes_full, inception_model, npz, 'cuda:0', 16)
+      fid = get_fid(fakes_full, inception_model, npz, device, opt.batch_size)
       print('fid score: %.2f' % fid, flush=True)
 
     
