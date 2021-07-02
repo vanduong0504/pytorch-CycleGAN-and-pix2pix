@@ -6,24 +6,37 @@ from PIL import Image
 import os
 
 
-def tensor2im(input_image, imtype=np.uint8):
-    """"Converts a Tensor array into a numpy image array.
+def tensor2im(image_tensor, imtype=np.uint8, normalize=True, tile=False):
+    if isinstance(image_tensor, list):
+        image_numpy = []
+        for i in range(len(image_tensor)):
+            image_numpy.append(tensor2im(image_tensor[i], imtype, normalize))
+        return image_numpy
 
-    Parameters:
-        input_image (tensor) --  the input image tensor array
-        imtype (type)        --  the desired type of the converted numpy array
-    """
-    if not isinstance(input_image, np.ndarray):
-        if isinstance(input_image, torch.Tensor):  # get the data from a variable
-            image_tensor = input_image.data
+    if image_tensor.dim() == 4:
+        # transform each image in the batch
+        images_np = []
+        for b in range(image_tensor.size(0)):
+            one_image = image_tensor[b]
+            one_image_np = tensor2im(one_image, normalize=normalize)
+            images_np.append(one_image_np.reshape(1, *one_image_np.shape))
+        images_np = np.concatenate(images_np, axis=0)
+        if tile:
+            images_tiled = tile_images(images_np)
+            return images_tiled
         else:
-            return input_image
-        image_numpy = image_tensor[0].cpu().float().numpy()  # convert it into a numpy array
-        if image_numpy.shape[0] == 1:  # grayscale to RGB
-            image_numpy = np.tile(image_numpy, (3, 1, 1))
-        image_numpy = (np.transpose(image_numpy, (1, 2, 0)) + 1) / 2.0 * 255.0  # post-processing: tranpose and scaling
-    else:  # if it is a numpy array, do nothing
-        image_numpy = input_image
+            return images_np
+
+    if image_tensor.dim() == 2:
+        image_tensor = image_tensor.unsqueeze(0)
+    image_numpy = image_tensor.detach().cpu().float().numpy()
+    if normalize:
+        image_numpy = (np.transpose(image_numpy, (1, 2, 0)) + 1) / 2.0 * 255.0
+    else:
+        image_numpy = np.transpose(image_numpy, (1, 2, 0)) * 255.0
+    image_numpy = np.clip(image_numpy, 0, 255)
+    if image_numpy.shape[2] == 1:
+        image_numpy = image_numpy[:, :, 0]
     return image_numpy.astype(imtype)
 
 
