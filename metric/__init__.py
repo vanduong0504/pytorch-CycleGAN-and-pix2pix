@@ -15,32 +15,11 @@ def get_fid(fakes, model, npz, device, batch_size=1, tqdm_position=None):
 
 
 def create_metric_models(opt, device):
-    if not opt.no_fid:
-        block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[2048]
-        inception_model = InceptionV3([block_idx])
-        if len(opt.gpu_ids) > 1:
-            inception_model = nn.DataParallel(inception_model, opt.gpu_ids)
-        inception_model.to(device)
-        inception_model.eval()
-    else:
-        inception_model = None
-    if 'cityscapes' in opt.dataroot and opt.direction == 'BtoA':
-        drn_model = DRNSeg('drn_d_105', 19, pretrained=False)
-        util.load_network(drn_model, opt.drn_path, verbose=False)
-        if len(opt.gpu_ids) > 0:
-            drn_model = nn.DataParallel(drn_model, opt.gpu_ids)
-        drn_model.to(device)
-        drn_model.eval()
-    else:
-        drn_model = None
-    if 'coco' in opt.dataroot and not opt.no_mIoU and opt.direction == 'BtoA':
-        deeplabv2_model = MSC(DeepLabV2(n_classes=182, n_blocks=[3, 4, 23, 3],
-                                        atrous_rates=[6, 12, 18, 24]), scales=[0.5, 0.75])
-        util.load_network(deeplabv2_model, opt.deeplabv2_path, verbose=False)
-        if len(opt.gpu_ids) > 1:
-            deeplabv2_model = nn.DataParallel(deeplabv2_model, opt.gpu_ids)
-        deeplabv2_model.to(device)
-        deeplabv2_model.eval()
-    else:
-        deeplabv2_model = None
-    return inception_model, drn_model, deeplabv2_model
+    block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[2048]
+    inception_model = InceptionV3([block_idx])
+    if len(opt.gpu_ids) > 1:
+        inception_model = nn.DataParallel(inception_model, opt.gpu_ids)
+    inception_model.to(device)
+    inception_model.eval()
+
+    return inception_model
