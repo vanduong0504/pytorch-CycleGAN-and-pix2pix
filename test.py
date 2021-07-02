@@ -5,11 +5,13 @@ from models import create_model
 from util.visualizer import save_images
 from util import html
 import tqdm
+import copy
 import torch.nn as nn
 import torch 
 from torchprofile import profile_macs
 import time
 from metric import create_metric_models, get_fid
+import numpy as np
 
 def profile(model, config=None, verbose=False):
     netG = model.netG
@@ -69,7 +71,11 @@ if __name__ == '__main__':
     print('Full: %.3fG MACs\t%.3fM Params\t%.5fs Latency' % 
     (macs_full/1e9, params_full/1e6, latency_full))
 
-    inception_model, drn_model, deeplabv2_model = create_metric_models(opt, device)
+    device = copy.deepcopy(model.device)
+    del model
+    torch.cuda.empty_cache()
+
+    inception_model = create_metric_models(opt, device)
     if inception_model is not None:
       npz = np.load(opt.real_stat_path)
       fid = get_fid(fakes_full, inception_model, npz, 'cuda:0', 16)
