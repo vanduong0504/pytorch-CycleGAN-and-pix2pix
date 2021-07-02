@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch 
 from torchprofile import profile_macs
 import time
+from metric import create_metric_models, get_fid
 
 def profile(model, config=None, verbose=False):
     netG = model.netG
@@ -64,26 +65,33 @@ if __name__ == '__main__':
     model = create_model(opt)      # create a model given opt.model and other options
     model.setup(opt)               # regular setup: load and print networks; create schedulers
     
-    # macs_full, params_full, latency_full, fakes_full = evaluate(model,dataloader)
-    # print('Full: %.3fG MACs\t%.3fM Params\t%.5fs Latency' % 
-    # (macs_full/1e9, params_full/1e6, latency_full))
-    
-    web_dir = os.path.join(opt.results_dir, opt.name, '{}_{}'.format(opt.phase, opt.epoch))  # define the website directory
-    if opt.load_iter > 0:  # load_iter is 0 by default
-        web_dir = '{:s}_iter{:d}'.format(web_dir, opt.load_iter)
-    print('creating web directory', web_dir)
-    webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.epoch))
+    macs_full, params_full, latency_full, fakes_full = evaluate(model,dataloader)
+    print('Full: %.3fG MACs\t%.3fM Params\t%.5fs Latency' % 
+    (macs_full/1e9, params_full/1e6, latency_full))
 
-    if opt.eval:
-        model.eval()
-    for i, data in enumerate(dataset):
-        if i >= opt.num_test:  # only apply our model to opt.num_test images.
-            break
-        model.set_input(data)  # unpack data from data loader
-        model.test()           # run inference
-        visuals = model.get_current_visuals()  # get image results
-        img_path = model.get_image_paths()     # get image paths
-        if i % 5 == 0:  # save images to an HTML file
-            print('processing (%04d)-th image... %s' % (i, img_path))
-        save_images(webpage, visuals, img_path, aspect_ratio=opt.aspect_ratio, width=opt.display_winsize)
-    webpage.save()  # save the HTML
+    inception_model, drn_model, deeplabv2_model = create_metric_models(opt, device)
+    if inception_model is not None:
+      npz = np.load(opt.real_stat_path)
+      fid = get_fid(fakes_full, inception_model, npz, 'cuda:0', 16)
+      print('fid score: %.2f' % fid, flush=True)
+
+    
+    # web_dir = os.path.join(opt.results_dir, opt.name, '{}_{}'.format(opt.phase, opt.epoch))  # define the website directory
+    # if opt.load_iter > 0:  # load_iter is 0 by default
+    #     web_dir = '{:s}_iter{:d}'.format(web_dir, opt.load_iter)
+    # print('creating web directory', web_dir)
+    # webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.epoch))
+
+    # if opt.eval:
+    #     model.eval()
+    # for i, data in enumerate(dataset):
+    #     if i >= opt.num_test:  # only apply our model to opt.num_test images.
+    #         break
+    #     model.set_input(data)  # unpack data from data loader
+    #     model.test()           # run inference
+    #     visuals = model.get_current_visuals()  # get image results
+    #     img_path = model.get_image_paths()     # get image paths
+    #     if i % 5 == 0:  # save images to an HTML file
+    #         print('processing (%04d)-th image... %s' % (i, img_path))
+    #     save_images(webpage, visuals, img_path, aspect_ratio=opt.aspect_ratio, width=opt.display_winsize)
+    # webpage.save()  # save the HTML
